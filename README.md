@@ -9,13 +9,16 @@ This plugin extends the functionality of the official Cloudflare plugin by autom
 - A post or page is published (new or scheduled)
 - A post or page is updated
 - Any content transitions to the "publish" status
+- The full WP Rocket cache is cleared
 
 ## Features
 
 - ✅ Automatically purges entire Cloudflare cache on content publish/update
 - ✅ Works with scheduled posts
+- ✅ Triggers full Cloudflare purge when WP Rocket full cache is cleared
 - ✅ Compatible with the official Cloudflare plugin
 - ✅ Uses Cloudflare plugin's API directly (no fallbacks)
+- ✅ Forces Cloudflare `plugin_specific_cache` option to `on` at runtime
 - ✅ Debug logging support
 - ✅ Follows WordPress coding standards
 - ✅ Simple namespace-based architecture
@@ -45,6 +48,8 @@ The plugin hooks into WordPress post lifecycle events:
 - `transition_post_status` - Detects when posts transition to "publish" status
 - `save_post` - Detects when published posts are updated
 - `publish_future_post` - Handles scheduled post publications
+- `after_rocket_clean_domain` - Triggers a Cloudflare full purge when WP Rocket clears domain cache
+- `pre_option_plugin_specific_cache` - Forces `plugin_specific_cache` to `on` when read by WordPress
 
 When any of these events occur, the plugin:
 
@@ -57,6 +62,17 @@ When any of these events occur, the plugin:
 ## Configuration
 
 No configuration needed! The plugin automatically uses the Cloudflare plugin's API. Make sure the official Cloudflare plugin is installed, activated, and properly configured.
+
+### Runtime Option Override
+
+Some Cloudflare plugin internals only allow full cache purge when `plugin_specific_cache` is set to `on`.
+
+This addon forces the value at runtime using the `pre_option_plugin_specific_cache` filter.  
+That means:
+
+- The value can remain `off` in the database
+- The Cloudflare plugin still receives `on` during execution
+- No manual database update is required
 
 ## Debugging
 
@@ -85,7 +101,8 @@ Test the plugin by:
 1. Publishing a new post
 2. Updating an existing published post
 3. Scheduling a post for future publication
-4. Checking Cloudflare dashboard or debug logs to verify cache purge
+4. Clicking "Clear and preload cache" (or full cache clear) in WP Rocket
+5. Checking Cloudflare dashboard or debug logs to verify cache purge
 
 ## License
 
@@ -96,6 +113,10 @@ GPL v2 or later
 For issues, feature requests, or contributions, please open an issue on GitHub.
 
 ## Changelog
+
+### 1.1.0
+- Added runtime override for Cloudflare `plugin_specific_cache` option (`on`)
+- Added WP Rocket integration: full Cloudflare purge on `after_rocket_clean_domain`
 
 ### 1.0.0
 - Initial release

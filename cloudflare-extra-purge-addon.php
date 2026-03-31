@@ -3,7 +3,7 @@
  * Plugin Name: Cloudflare Extra Purge Addon
  * Plugin URI: https://github.com/beapi/cloudflare-extra-purge-addon
  * Description: Automatically purges the entire Cloudflare cache when content is published or updated. Works as an addon to the official Cloudflare plugin.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: Be API
  * Author URI: https://beapi.fr
  * License: GPL v2 or later
@@ -133,11 +133,45 @@ function log_purge( $status, $message ) {
 }
 
 /**
+ * Force Cloudflare "plugin_specific_cache" option to "on".
+ *
+ * @param mixed  $pre_option Existing pre-option value.
+ * @param string $option     Option name.
+ * @param mixed  $default    Default value.
+ * @return array Forced option payload with value set to "on".
+ */
+function force_plugin_specific_cache_on( $pre_option, $option, $default ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+	if ( \is_array( $pre_option ) ) {
+		$pre_option['value'] = 'on';
+		return $pre_option;
+	}
+
+	return array(
+		'id'          => 'plugin_specific_cache',
+		'value'       => 'on',
+		'editable'    => true,
+		'modified_on' => \gmdate( 'c' ),
+	);
+}
+
+/**
+ * Purge Cloudflare cache when WP Rocket clears full domain cache.
+ *
+ * @return void
+ */
+function on_wp_rocket_cache_clear() {
+	purge_all_cache();
+}
+
+/**
  * Initialize the plugin.
  *
  * @return void
  */
 function init() {
+	// Ensure Cloudflare option allows full cache purge.
+	\add_filter( 'pre_option_plugin_specific_cache', __NAMESPACE__ . '\\force_plugin_specific_cache_on', 10, 3 );
+
 	// Hook into post status transitions (publish, update, scheduled publish).
 	\add_action( 'transition_post_status', __NAMESPACE__ . '\\on_post_status_change', 10, 3 );
 
@@ -146,6 +180,9 @@ function init() {
 
 	// Hook into scheduled post publication.
 	\add_action( 'publish_future_post', __NAMESPACE__ . '\\purge_all_cache', 10, 1 );
+
+	// Hook into WP Rocket full cache clear.
+	\add_action( 'after_rocket_clean_domain', __NAMESPACE__ . '\\on_wp_rocket_cache_clear' );
 }
 
 \add_action( 'plugins_loaded', __NAMESPACE__ . '\\init' );
